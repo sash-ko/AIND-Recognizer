@@ -90,10 +90,10 @@ class SelectorBIC(ModelSelector):
         try:
             model = self.base_model(num_components, self.X, self.lengths)
             if model is not None:
-                L = model.score(self.X, self.lengths)
+                log_L = model.score(self.X, self.lengths)
                 N, p = self.X.shape
 
-                return -2 * np.log(L) + p * np.log(N)
+                return -2 * log_L + p * np.log(N)
         except Exception as e:
             return None
 
