@@ -24,13 +24,16 @@ class TestSelectors(TestCase):
     def test_select_constant_interface(self):
         model = SelectorConstant(self.sequences, self.xlengths, 'BUY').select()
         self.assertGreaterEqual(model.n_components, 2)
-        model = SelectorConstant(self.sequences, self.xlengths, 'BOOK').select()
+
+        model = SelectorConstant(self.sequences, self.xlengths,
+                                 'BOOK').select()
         self.assertGreaterEqual(model.n_components, 2)
 
     def test_select_bic_interface(self):
         model = SelectorBIC(self.sequences, self.xlengths, 'FRANK').select()
         self.assertGreaterEqual(model.n_components, 2)
-        model = SelectorBIC(self.sequences, self.xlengths, 'VEGETABLE').select()
+        model = SelectorBIC(self.sequences, self.xlengths,
+                            'VEGETABLE').select()
         self.assertGreaterEqual(model.n_components, 2)
 
     def test_select_cv_interface(self):
@@ -55,16 +58,20 @@ class TestRecognize(TestCase):
 
     def test_recognize_probabilities_interface(self):
         probs, _ = recognize(self.models, self.test_set)
-        self.assertEqual(len(probs), self.test_set.num_items, "Number of test items in probabilities list incorrect.")
+        self.assertEqual(len(probs), self.test_set.num_items,
+                         "Number of test items in probabilities list incorrect.")
         self.assertEqual(len(probs[0]), self.training_set.num_items,
                          "Number of training word probabilities in test item dictionary incorrect.")
         self.assertEqual(len(probs[-1]), self.training_set.num_items,
                          "Number of training word probabilities in test item dictionary incorrect.")
-        self.assertIn('FRANK', probs[0], "Dictionary of probabilities does not contain correct keys")
-        self.assertIn('CHICKEN', probs[-1], "Dictionary of probabilities does not contain correct keys")
+        self.assertIn(
+            'FRANK', probs[0], "Dictionary of probabilities does not contain correct keys")
+        self.assertIn(
+            'CHICKEN', probs[-1], "Dictionary of probabilities does not contain correct keys")
 
     def test_recognize_guesses_interface(self):
         _, guesses = recognize(self.models, self.test_set)
-        self.assertEqual(len(guesses), self.test_set.num_items, "Number of test items in guesses list incorrect.")
+        self.assertEqual(len(guesses), self.test_set.num_items,
+                         "Number of test items in guesses list incorrect.")
         self.assertIsInstance(guesses[0], str, "The guesses are not strings")
         self.assertIsInstance(guesses[-1], str, "The guesses are not strings")

@@ -7,6 +7,7 @@ from my_model_selectors import (
 
 FEATURES = ['right-y', 'right-x']
 
+
 class TestSelectors(TestCase):
     def setUp(self):
         asl = AslDb()
@@ -17,13 +18,15 @@ class TestSelectors(TestCase):
     def test_select_constant_interface(self):
         model = SelectorConstant(self.sequences, self.xlengths, 'BUY').select()
         self.assertGreaterEqual(model.n_components, 2)
-        model = SelectorConstant(self.sequences, self.xlengths, 'BOOK').select()
+        model = SelectorConstant(
+            self.sequences, self.xlengths, 'BOOK').select()
         self.assertGreaterEqual(model.n_components, 2)
 
     def test_select_bic_interface(self):
         model = SelectorBIC(self.sequences, self.xlengths, 'FRANK').select()
         self.assertGreaterEqual(model.n_components, 2)
-        model = SelectorBIC(self.sequences, self.xlengths, 'VEGETABLE').select()
+        model = SelectorBIC(self.sequences, self.xlengths,
+                            'VEGETABLE').select()
         self.assertGreaterEqual(model.n_components, 2)
 
     def test_select_cv_interface(self):

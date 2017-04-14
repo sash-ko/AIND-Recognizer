@@ -10,7 +10,7 @@ class AslDb(object):
     This class has been designed to provide a convenient interface for individual word data for students in the Udacity AI Nanodegree Program.
 
     For example, to instantiate and load train/test files using a feature_method 
-	definition named features, the following snippet may be used:
+        definition named features, the following snippet may be used:
         asl = AslDb()
         asl.build_training(tr_file, features)
         asl.build_test(tst_file, features)
@@ -43,10 +43,11 @@ class AslDb(object):
                   2         149     181      170      175     161      62  woman-1
 
         """
-        self.df = pd.read_csv(hands_fn).merge(pd.read_csv(speakers_fn),on='video')
-        self.df.set_index(['video','frame'], inplace=True)
+        self.df = pd.read_csv(hands_fn).merge(
+            pd.read_csv(speakers_fn), on='video')
+        self.df.set_index(['video', 'frame'], inplace=True)
 
-    def build_training(self, feature_list, csvfilename =os.path.join('data', 'train_words.csv')):
+    def build_training(self, feature_list, csvfilename=os.path.join('data', 'train_words.csv')):
         """ wrapper creates sequence data objects for training words suitable for hmmlearn library
 
         :param feature_list: list of str label names
@@ -74,7 +75,7 @@ class WordsData(object):
 
     """
 
-    def __init__(self, asl:AslDb, csvfile:str, feature_list:list):
+    def __init__(self, asl: AslDb, csvfile: str, feature_list: list):
         """ loads training data sequences suitable for use with hmmlearn library based on feature_method chosen
 
         :param asl: ASLdata object
@@ -100,16 +101,16 @@ class WordsData(object):
         tr_df = pd.read_csv(fn)
         dict = {}
         for i in range(len(tr_df)):
-            word = tr_df.ix[i,'word']
-            video = tr_df.ix[i,'video']
-            new_sequence = [] # list of sample lists for a sequence
-            for frame in range(tr_df.ix[i,'startframe'], tr_df.ix[i,'endframe']+1):
+            word = tr_df.ix[i, 'word']
+            video = tr_df.ix[i, 'video']
+            new_sequence = []  # list of sample lists for a sequence
+            for frame in range(tr_df.ix[i, 'startframe'], tr_df.ix[i, 'endframe'] + 1):
                 vid_frame = video, frame
                 sample = [asl.df.ix[vid_frame][f] for f in feature_list]
                 if len(sample) > 0:  # dont add if not found
                     new_sequence.append(sample)
             if word in dict:
-                dict[word].append(new_sequence) # list of sequences
+                dict[word].append(new_sequence)  # list of sequences
             else:
                 dict[word] = [new_sequence]
         return dict
@@ -135,7 +136,7 @@ class WordsData(object):
         """
         return self._hmm_data
 
-    def get_word_sequences(self, word:str):
+    def get_word_sequences(self, word: str):
         """ getter for single word series of sequences of feature lists for each frame
 
         :param word: str
@@ -145,7 +146,7 @@ class WordsData(object):
         """
         return self._data[word]
 
-    def get_word_Xlengths(self, word:str):
+    def get_word_Xlengths(self, word: str):
         """ getter for single word (X, lengths) tuple for use with hmmlearn library
 
         :param word:
@@ -162,7 +163,7 @@ class SinglesData(object):
 
     """
 
-    def __init__(self, asl:AslDb, csvfile:str, feature_list):
+    def __init__(self, asl: AslDb, csvfile: str, feature_list):
         """ loads training data sequences suitable for use with hmmlearn library based on feature_method chosen
 
         :param asl: ASLdata object
@@ -173,7 +174,7 @@ class SinglesData(object):
         """
         self.df = pd.read_csv(csvfile)
         self.wordlist = list(self.df['word'])
-        self.sentences_index  = self._load_sentence_word_indices()
+        self.sentences_index = self._load_sentence_word_indices()
         self._data = self._load_data(asl, feature_list)
         self._hmm_data = create_hmmlearn_data(self._data)
         self.num_items = len(self._data)
@@ -193,15 +194,15 @@ class SinglesData(object):
         dict = {}
         # for each word indexed in the DataFrame
         for i in range(len(self.df)):
-            video = self.df.ix[i,'video']
-            new_sequence = [] # list of sample dictionaries for a sequence
-            for frame in range(self.df.ix[i,'startframe'], self.df.ix[i,'endframe']+1):
+            video = self.df.ix[i, 'video']
+            new_sequence = []  # list of sample dictionaries for a sequence
+            for frame in range(self.df.ix[i, 'startframe'], self.df.ix[i, 'endframe'] + 1):
                 vid_frame = video, frame
                 sample = [asl.df.ix[vid_frame][f] for f in feature_list]
                 if len(sample) > 0:  # dont add if not found
                     new_sequence.append(sample)
             if i in dict:
-                dict[i].append(new_sequence) # list of sequences
+                dict[i].append(new_sequence)  # list of sequences
             else:
                 dict[i] = [new_sequence]
         return dict
@@ -221,7 +222,7 @@ class SinglesData(object):
         p = p.transpose()
         dict = {}
         for v in p:
-            dict[v] = [int(i) for i in p[v] if i>=0]
+            dict[v] = [int(i) for i in p[v] if i >= 0]
         return dict
 
     def get_all_sequences(self):
@@ -245,7 +246,7 @@ class SinglesData(object):
         """
         return self._hmm_data
 
-    def get_item_sequences(self, item:int):
+    def get_item_sequences(self, item: int):
         """ getter for single item series of sequences of feature lists for each frame
 
         :param word: str
@@ -255,7 +256,7 @@ class SinglesData(object):
         """
         return self._data[item]
 
-    def get_item_Xlengths(self, item:int):
+    def get_item_Xlengths(self, item: int):
         """ getter for single item (X, lengths) tuple for use with hmmlearn library
 
         :param word:
@@ -282,6 +283,7 @@ def combine_sequences(sequences):
         sequence_lengths.append(num_frames)
     return sequence_cat, sequence_lengths
 
+
 def create_hmmlearn_data(dict):
     seq_len_dict = {}
     for key in dict:
@@ -291,7 +293,5 @@ def create_hmmlearn_data(dict):
     return seq_len_dict
 
 if __name__ == '__main__':
-    asl= AslDb()
+    asl = AslDb()
     print(asl.df.ix[98, 1])
-
-
