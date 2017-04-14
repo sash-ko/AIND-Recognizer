@@ -61,7 +61,10 @@ class ModelSelector(object):
         scores = [s for s in scores if s[-1] is not None]
         scores.sort(key=lambda v: v[1], reverse=True)
 
-        best_num_components = scores[0][0]
+        if scores:
+            best_num_components = scores[0][0]
+        else:
+            best_num_components = self.n_constant
         return self.base_model(best_num_components, self.X, self.lengths)
 
 
@@ -135,7 +138,11 @@ class SelectorCV(ModelSelector):
     '''
 
     def score_model(self, num_components):
-        kf = KFold(n_splits=2)
+        n_splits = 3
+        if len(self.sequences) < n_splits:
+            return None
+
+        kf = KFold(n_splits=n_splits)
 
         scores = []
         for train_index, test_index in kf.split(self.sequences):
