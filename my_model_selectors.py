@@ -30,15 +30,15 @@ class ModelSelector(object):
     def select(self):
         raise NotImplementedError
 
-    def base_model(self, num_states):
+    def base_model(self, num_states, X, lengths):
         # with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-        # warnings.filterwarnings("ignore", category=RuntimeWarning)
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
         try:
             hmm_model = GaussianHMM(n_components=num_states,
                                     covariance_type="diag", n_iter=1000,
                                     random_state=self.random_state,
-                                    verbose=False).fit(self.X, self.lengths)
+                                    verbose=False).fit(X, lengths)
             if self.verbose:
                 print("model created for {} with {} states".format(
                     self.this_word, num_states))
@@ -61,7 +61,7 @@ class SelectorConstant(ModelSelector):
         :return: GaussianHMM object
         """
         best_num_components = self.n_constant
-        return self.base_model(best_num_components)
+        return self.base_model(best_num_components, self.X, self.lengths)
 
 
 class SelectorBIC(ModelSelector):
@@ -101,12 +101,40 @@ class SelectorDIC(ModelSelector):
 
 
 class SelectorCV(ModelSelector):
-    ''' select best model based on average log Likelihood of cross-validation folds
+    ''' select best model based on average log Likelihood of
+    cross-validation folds
 
     '''
+
+    def score_model(self, num_components, folds=2):
+        kf = KFold(n_splits=folds)
+
+        scores = []
+        for train_index, test_index in kf.split(self.sequences):
+            X_train, lengths_train = combine_sequences(train_index,
+                                                       self.sequences)
+            model = self.base_model(num_components, X_train, lengths_train)
+            if model is None:
+                continue
+
+            X_test, lengths_test = combine_sequences(test_index,
+                                                     self.sequences)
+
+            try:
+                scores.append(model.score(X_test, lengths_test))
+            except Exception as e:
+                continue
+                # print('Error: {}'.format(e))
+
+        return np.mean(scores)
 
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection using CV
-        raise NotImplementedError
+        components = range(self.min_n_components, self.max_n_components + 1)
+
+        scores = [(c, self.score_model(c)) for c in components]
+        scores.sort(key=lambda v: v[1], reverse=True)
+
+        best_num_components = scores[0][0]
+        return self.base_model(best_num_components, self.X, self.lengths)
