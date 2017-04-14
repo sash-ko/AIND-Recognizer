@@ -49,6 +49,21 @@ class ModelSelector(object):
                                                             num_states))
             return None
 
+    def score_model(self, num_components):
+        raise NotImplementedError
+
+    def select_best(self):
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+        components = range(self.min_n_components, self.max_n_components + 1)
+
+        scores = [(c, self.score_model(c)) for c in components]
+        scores = [s for s in scores if s[-1] is not None]
+        scores.sort(key=lambda v: v[1], reverse=True)
+
+        best_num_components = scores[0][0]
+        return self.base_model(best_num_components, self.X, self.lengths)
+
 
 class SelectorConstant(ModelSelector):
     """ select the model with value self.n_constant
@@ -83,21 +98,7 @@ class SelectorBIC(ModelSelector):
             return None
 
     def select(self):
-        """ select the best model for self.this_word based on
-        BIC score for n between self.min_n_components and self.max_n_components
-
-        :return: GaussianHMM object
-        """
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-        components = range(self.min_n_components, self.max_n_components + 1)
-
-        scores = [(c, self.score_model(c)) for c in components]
-        scores = [s for s in scores if s[-1] is not None]
-        scores.sort(key=lambda v: v[1], reverse=True)
-
-        best_num_components = scores[0][0]
-        return self.base_model(best_num_components, self.X, self.lengths)
+        return self.select_best()
 
 
 class SelectorDIC(ModelSelector):
@@ -110,11 +111,21 @@ class SelectorDIC(ModelSelector):
     DIC = log(P(X(i)) - 1/(M-1)SUM(log(P(X(all but i))
     '''
 
-    def select(self):
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
+    def score_model(self, num_components):
+        try:
+            model = self.base_model(num_components, self.X, self.lengths)
+            if model is not None:
+                log_L = model.score(self.X, self.lengths)
 
-        # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+                log_P = [model.score(X, lengths) for w, (X, lengths)
+                         in self.hwords.items() if w != self.this_word]
+                M = len(log_P)
+                return log_L - sum(log_P) / (M - 1)
+        except Exception as e:
+            return None
+
+    def select(self):
+        return self.select_best()
 
 
 class SelectorCV(ModelSelector):
@@ -123,8 +134,8 @@ class SelectorCV(ModelSelector):
 
     '''
 
-    def score_model(self, num_components, folds=2):
-        kf = KFold(n_splits=folds)
+    def score_model(self, num_components):
+        kf = KFold(n_splits=2)
 
         scores = []
         for train_index, test_index in kf.split(self.sequences):
@@ -146,12 +157,4 @@ class SelectorCV(ModelSelector):
         return np.mean(scores)
 
     def select(self):
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-        components = range(self.min_n_components, self.max_n_components + 1)
-
-        scores = [(c, self.score_model(c)) for c in components]
-        scores.sort(key=lambda v: v[1], reverse=True)
-
-        best_num_components = scores[0][0]
-        return self.base_model(best_num_components, self.X, self.lengths)
+        return self.select_best()
