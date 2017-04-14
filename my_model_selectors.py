@@ -13,10 +13,9 @@ class ModelSelector(object):
     base class for model selection (strategy design pattern)
     '''
 
-    def __init__(self, all_word_sequences: dict, all_word_Xlengths: dict, this_word: str,
-                 n_constant=3,
-                 min_n_components=2, max_n_components=10,
-                 random_state=14, verbose=False):
+    def __init__(self, all_word_sequences: dict, all_word_Xlengths: dict,
+                 this_word: str, n_constant=3, min_n_components=2,
+                 max_n_components=10, random_state=14, verbose=False):
         self.words = all_word_sequences
         self.hwords = all_word_Xlengths
         self.sequences = all_word_sequences[this_word]
@@ -36,14 +35,18 @@ class ModelSelector(object):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         # warnings.filterwarnings("ignore", category=RuntimeWarning)
         try:
-            hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
-                                    random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+            hmm_model = GaussianHMM(n_components=num_states,
+                                    covariance_type="diag", n_iter=1000,
+                                    random_state=self.random_state,
+                                    verbose=False).fit(self.X, self.lengths)
             if self.verbose:
-                print("model created for {} with {} states".format(self.this_word, num_states))
+                print("model created for {} with {} states".format(
+                    self.this_word, num_states))
             return hmm_model
-        except:
+        except Exception as e:
             if self.verbose:
-                print("failure on {} with {} states".format(self.this_word, num_states))
+                print("failure on {} with {} states".format(self.this_word,
+                                                            num_states))
             return None
 
 
@@ -83,8 +86,9 @@ class SelectorBIC(ModelSelector):
 class SelectorDIC(ModelSelector):
     ''' select best model based on Discriminative Information Criterion
 
-    Biem, Alain. "A model selection criterion for classification: Application to hmm topology optimization."
-    Document Analysis and Recognition, 2003. Proceedings. Seventh International Conference on. IEEE, 2003.
+    Biem, Alain. "A model selection criterion for classification: Application
+    to hmm topology optimization." Document Analysis and Recognition, 2003.
+    Proceedings. Seventh International Conference on. IEEE, 2003.
     http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.58.6208&rep=rep1&type=pdf
     DIC = log(P(X(i)) - 1/(M-1)SUM(log(P(X(all but i))
     '''
