@@ -1,10 +1,8 @@
-import math
-import statistics
 import warnings
-
 import numpy as np
 from hmmlearn.hmm import GaussianHMM
 from sklearn.model_selection import KFold
+
 from asl_utils import combine_sequences
 
 
@@ -52,19 +50,33 @@ class ModelSelector(object):
     def score_model(self, num_components):
         raise NotImplementedError
 
-    def select_best(self):
+    def select_best(self, minimize=True):
+        """ Helper functions that loops between min and max number of
+        components and to find out how many states leads to the best solution
+        and than train a model with this number of components
+        """
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+        # check all possible numbers components
         components = range(self.min_n_components, self.max_n_components + 1)
 
         scores = [(c, self.score_model(c)) for c in components]
         scores = [s for s in scores if s[-1] is not None]
-        scores.sort(key=lambda v: v[1], reverse=True)
+
+        # minimize or maximaze the score
+        scores.sort(key=lambda v: v[1], reverse=minimize)
 
         if scores:
             best_num_components = scores[0][0]
         else:
+            # fallback to the constant if nothing scored
             best_num_components = self.n_constant
+
+        # train a model with best_num_components found in previous steps
+        # NOTE: this is redundant step since all models were already calculated
+        # in the loop above but to keep consistency between CV and other method
+        # we call model training one more time (to train CV model on both
+        # train and test data)
         return self.base_model(best_num_components, self.X, self.lengths)
 
 
@@ -101,7 +113,7 @@ class SelectorBIC(ModelSelector):
             return None
 
     def select(self):
-        return self.select_best()
+        return self.select_best(minimize=True)
 
 
 class SelectorDIC(ModelSelector):
@@ -128,7 +140,11 @@ class SelectorDIC(ModelSelector):
             return None
 
     def select(self):
-        return self.select_best()
+        # loop between min and max number of components and
+        # find out how many states leads to the best solution
+
+        # maximize the score
+        return self.select_best(minimize=False)
 
 
 class SelectorCV(ModelSelector):
@@ -164,4 +180,6 @@ class SelectorCV(ModelSelector):
         return np.mean(scores)
 
     def select(self):
-        return self.select_best()
+        # loop between min and max number of components and
+        # find out how many states leads to the best solution
+        return self.select_best(minimize=True)
