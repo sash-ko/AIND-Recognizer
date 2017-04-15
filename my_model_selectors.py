@@ -65,20 +65,22 @@ class ModelSelector(object):
         scores = [s for s in scores if s[-1] is not None]
 
         # minimize or maximaze the score
-        scores.sort(key=lambda v: v[1], reverse=minimize)
+        scores.sort(key=lambda v: v[1][0], reverse=minimize)
 
+        model = None
         if scores:
             best_num_components = scores[0][0]
+            model = scores[0][1][1]
         else:
             # fallback to the constant if nothing scored
             best_num_components = self.n_constant
 
-        # train a model with best_num_components found in previous steps
-        # NOTE: this is redundant step since all models were already calculated
-        # in the loop above but to keep consistency between CV and other method
-        # we call model training one more time (to train CV model on both
-        # train and test data)
-        return self.base_model(best_num_components, self.X, self.lengths)
+        # Some selectors, like SelectorCV, don't return a model so it needs
+        # to be trained here. Those selectora just perform looping and
+        # selection of best number of components
+        if model is None:
+            model = self.base_model(best_num_components, self.X, self.lengths)
+        return model
 
 
 class SelectorConstant(ModelSelector):
@@ -109,7 +111,8 @@ class SelectorBIC(ModelSelector):
                 log_L = model.score(self.X, self.lengths)
                 N, p = self.X.shape
 
-                return -2 * log_L + p * np.log(N)
+                BIC = -2 * log_L + p * np.log(N)
+                return BIC, model
         except Exception as e:
             return None
 
@@ -144,7 +147,8 @@ class SelectorDIC(ModelSelector):
                         scores.append(score)
 
                 M = len(scores)
-                return log_L - sum(scores) / (M - 1)
+                DIC = log_L - sum(scores) / (M - 1)
+                return DIC, model
         except Exception as e:
             return None
 
@@ -171,22 +175,21 @@ class SelectorCV(ModelSelector):
 
         scores = []
         for train_index, test_index in kf.split(self.sequences):
-            X_train, lengths_train = combine_sequences(train_index,
-                                                       self.sequences)
-            model = self.base_model(num_components, X_train, lengths_train)
-            if model is None:
-                continue
-
-            X_test, lengths_test = combine_sequences(test_index,
-                                                     self.sequences)
-
             try:
+                X_train, lengths_train = combine_sequences(train_index,
+                                                           self.sequences)
+                model = self.base_model(num_components, X_train, lengths_train)
+                if model is None:
+                    continue
+
+                X_test, lengths_test = combine_sequences(test_index,
+                                                         self.sequences)
+
                 scores.append(model.score(X_test, lengths_test))
             except Exception as e:
                 continue
-                # print('Error: {}'.format(e))
 
-        return np.mean(scores)
+        return np.mean(scores), None
 
     def select(self):
         # loop between min and max number of components and
