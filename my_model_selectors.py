@@ -55,6 +55,7 @@ class ModelSelector(object):
         components and to find out how many states leads to the best solution
         and than train a model with this number of components
         """
+
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # check all possible numbers components
@@ -132,10 +133,18 @@ class SelectorDIC(ModelSelector):
             if model is not None:
                 log_L = model.score(self.X, self.lengths)
 
-                log_P = [model.score(X, lengths) for w, (X, lengths)
-                         in self.hwords.items() if w != self.this_word]
-                M = len(log_P)
-                return log_L - sum(log_P) / (M - 1)
+                scores = []
+                for word, (X, lengths) in self.hwords.items():
+                    if word != self.this_word:
+                        try:
+                            score = model.score(X, lengths)
+                        except Exception:
+                            continue
+
+                        scores.append(score)
+
+                M = len(scores)
+                return log_L - sum(scores) / (M - 1)
         except Exception as e:
             return None
 
