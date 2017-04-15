@@ -50,7 +50,7 @@ class ModelSelector(object):
     def score_model(self, num_components):
         raise NotImplementedError
 
-    def select_best(self, minimize=True):
+    def select_best(self, maximaze=True):
         """ Helper functions that loops between min and max number of
         components and to find out how many states leads to the best solution
         and than train a model with this number of components
@@ -65,7 +65,7 @@ class ModelSelector(object):
         scores = [s for s in scores if s[-1] is not None]
 
         # minimize or maximaze the score
-        scores.sort(key=lambda v: v[1][0], reverse=minimize)
+        scores.sort(key=lambda v: v[1][0], reverse=maximaze)
 
         model = None
         if scores:
@@ -98,7 +98,8 @@ class SelectorConstant(ModelSelector):
 
 
 class SelectorBIC(ModelSelector):
-    """ select the model with the lowest Baysian Information Criterion(BIC) score
+    """ select the model with the lowest Baysian Information Criterion
+    (BIC) score
 
     http://www2.imm.dtu.dk/courses/02433/doc/ch6_slides.pdf
     Bayesian information criteria: BIC = -2 * logL + p * logN
@@ -109,7 +110,13 @@ class SelectorBIC(ModelSelector):
             model = self.base_model(num_components, self.X, self.lengths)
             if model is not None:
                 log_L = model.score(self.X, self.lengths)
-                N, p = self.X.shape
+                N, features = self.X.shape
+
+                # https://ai-nd.slack.com/files/ylu/F4S90AJFR/number_of_parameters_in_bic.txt
+                # p = n^2 + 2*d*n - 1
+                # d - number of features
+                # n - number of HMM states
+                p = num_components ** 2 + 2 * features * num_components - 1
 
                 BIC = -2 * log_L + p * np.log(N)
                 return BIC, model
@@ -117,7 +124,7 @@ class SelectorBIC(ModelSelector):
             return None
 
     def select(self):
-        return self.select_best(minimize=True)
+        return self.select_best(maximaze=False)
 
 
 class SelectorDIC(ModelSelector):
@@ -157,7 +164,7 @@ class SelectorDIC(ModelSelector):
         # find out how many states leads to the best solution
 
         # maximize the score
-        return self.select_best(minimize=False)
+        return self.select_best(maximaze=True)
 
 
 class SelectorCV(ModelSelector):
@@ -194,4 +201,4 @@ class SelectorCV(ModelSelector):
     def select(self):
         # loop between min and max number of components and
         # find out how many states leads to the best solution
-        return self.select_best(minimize=True)
+        return self.select_best(maximaze=False)
